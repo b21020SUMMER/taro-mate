@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔮 타로메이트 (TarotMate) - 학생 전용</title>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #090714 0%, #15102a 50%, #0d0a18 100%);
+            --glass-bg: rgba(30, 24, 53, 0.7);
+            --glass-border: rgba(162, 155, 254, 0.25);
+            --main-purple: #6c5ce7;
+            --light-purple: #a29bfe;
+            --neon-glow: 0 0 25px rgba(108, 92, 231, 0.5);
+            --text-light: #f5f6fa;
+            --card-back: linear-gradient(135deg, #4834d4, #6c5ce7);
+        }
+
+        body {
+            font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-light);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        /* 🌌 은은하게 반짝이는 성좌 배경 */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px),
+                radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 30px);
+            background-size: 550px 550px, 350px 350px;
+            background-position: 0 0, 40px 60px;
+            opacity: 0.25;
+            z-index: -1;
+        }
+
+        /* 📱 글래스모피즘 컨테이너 */
+        .page { 
+            display: none; 
+            width: 92%; 
+            max-width: 440px; 
+            background: var(--glass-bg);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid var(--glass-border);
+            padding: 40px 25px;
+            border-radius: 24px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6), var(--neon-glow);
+            text-align: center; 
+            box-sizing: border-box;
+            margin: 20px 0;
+        }
+        .active { display: block; animation: fadeInUp 0.5s cubic-bezier(0.25, 1, 0.5, 1); }
+
+        @keyframes fadeInUp { 
+            from { opacity: 0; transform: translateY(20px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+
+        h2 { 
+            color: #fff; 
+            font-size: 1.8rem; 
+            text-shadow: 0 0 12px var(--light-purple); 
+            margin-top: 0;
+            font-weight: 800;
+        }
+        
+        p.desc {
+            color: var(--light-purple); 
+            font-size: 0.95rem; 
+            margin-bottom: 30px;
+        }
+        
+        input {
+            width: 90%; padding: 14px; margin: 10px 0;
+            border-radius: 12px; border: 1px solid var(--glass-border);
+            background: rgba(15, 11, 30, 0.75); color: white; text-align: center; font-size: 1rem;
+            outline: none; transition: 0.3s;
+        }
+        input:focus { border-color: var(--light-purple); box-shadow: 0 0 12px rgba(162, 155, 254, 0.4); }
+
+        button {
+            background: linear-gradient(135deg, var(--main-purple), #4834d4);
+            color: white; border: none;
+            padding: 14px 28px; font-size: 1rem; border-radius: 30px;
+            cursor: pointer; font-weight: bold; margin: 10px 5px; transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);
+        }
+        button:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 6px 20px rgba(108, 92, 231, 0.6), var(--neon-glow); 
+        }
+
+        .auth-toggle { font-size: 0.88rem; color: var(--light-purple); cursor: pointer; opacity: 0.8; transition: 0.3s; margin-top: 15px; }
+        .auth-toggle:hover { opacity: 1; color: #fff; }
+
+        .menu-grid button { width: 95%; margin: 7px 0; padding: 16px; border-radius: 16px; font-size: 1.05rem; }
+
+        /* 🃏 바둑판 카드 덱 */
+        .deck-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin: 25px 0;
+            padding: 15px;
+            background: rgba(10, 7, 20, 0.6);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .shuffle-card {
+            aspect-ratio: 2 / 3;
+            background: var(--card-back);
+            border: 1.5px solid rgba(255,255,255,0.7);
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .shuffle-card:hover {
+            transform: translateY(-8px) scale(1.05);
+            box-shadow: 0 10px 20px rgba(162, 155, 254, 0.5);
+            border-color: #fff;
+        }
+        .shuffle-card.selected {
+            border: 3px solid #fdcb6e;
+            box-shadow: 0 0 20px #fdcb6e;
+            transform: scale(1.08);
+        }
+
+        /* 🖼️ 이미지 안 잘리게 조정 */
+        .card-display { 
+            width: 250px; 
+            height: 400px; 
+            border-radius: 16px; 
+            border: 2px solid rgba(255, 255, 255, 0.2); 
+            box-shadow: 0 0 30px rgba(108, 92, 231, 0.7); 
+            margin: 20px auto; 
+            overflow: hidden; 
+            background: #000;
+        }
+        .card-display img { width: 100%; height: 100%; object-fit: contain; background-color: #000; }
+        
+        .fortune-details { 
+            background: rgba(15, 11, 30, 0.75); 
+            padding: 22px; 
+            border-radius: 18px; 
+            text-align: left; 
+            margin: 20px 0; 
+            border: 1px solid var(--glass-border); 
+        }
+        .fortune-details p { margin: 14px 0; font-size: 0.98rem; line-height: 1.7; color: #e2e0f0; }
+        .fortune-details strong { color: var(--light-purple); font-weight: 700; display: inline-block; min-width: 115px; }
+        .stars { color: #f1c40f; font-size: 1.2rem; text-shadow: 0 0 5px rgba(241, 196, 15, 0.5); }
+
+        .card-list { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 14px; 
+            margin-top: 20px; 
+            max-height: 380px; 
+            overflow-y: auto; 
+            padding-right: 5px; 
+        }
+        .card-list::-webkit-scrollbar { width: 6px; }
+        .card-list::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 10px; }
+
+        .mini-card { 
+            background: rgba(35, 27, 58, 0.6); padding: 10px; border-radius: 16px; border: 1px solid var(--glass-border); 
+            cursor: pointer; display: flex; flex-direction: column; align-items: center; transition: all 0.25s ease;
+        }
+        .mini-card:hover { transform: translateY(-4px); border-color: var(--light-purple); box-shadow: var(--neon-glow); }
+        .mini-card-img { width: 100%; aspect-ratio: 2/3; object-fit: contain; border-radius: 10px; margin-bottom: 8px; background: #000; }
+        .mini-card-name { font-size: 0.88rem; font-weight: bold; color: #fff; }
+
+        .comment-section { background: rgba(15, 11, 30, 0.5); padding: 18px; border-radius: 16px; margin-top: 25px; text-align: left; border: 1px solid rgba(255,255,255,0.05); }
+        .comment-list { max-height: 120px; overflow-y: auto; margin-bottom: 12px; font-size: 0.9rem; color: #d1cfe2; }
+        .comment-item { border-bottom: 1px solid rgba(162, 155, 254, 0.1); padding: 7px 0; line-height: 1.4; }
+    </style>
+</head>
+<body>
+
+    <div id="pageLogin" class="page active">
+        <h2 id="authTitle">🔮 타로메이트 (TarotMate)</h2>
+        <p id="authDesc" class="desc">회원 정보를 입력하고 오늘 나의 학업운을 확인하세요</p>
+        
+        <div style="margin: 20px 0;">
+            <input type="text" id="username" placeholder="이름을 입력하세요👨‍🎓"><br>
+            <input type="password" id="userpw" placeholder="비밀번호 숫자 4자리🔑" maxlength="4" inputmode="numeric">
+        </div>
+
+        <button id="btnAuth" onclick="handleAuth()">✨ 오늘의 타로 보기</button>
+        <div id="authToggleBtn" class="auth-toggle" onclick="toggleAuthMode()">아직 계정이 없으신가요? 회원가입하기</div>
+    </div>
+
+    <div id="pageMain" class="page">
+        <h3 id="welcomeMsg" style="margin-bottom:20px; color:#fff;">반갑습니다!</h3>
+        <div class="menu-grid">
+            <button onclick="goDrawPage()">🃏 오늘의 학업 타로 보기</button>
+            <button onclick="openStorage()">📂 나의 타로 카드 저장함</button>
+            <button onclick="openGuide()">📖 타로 메이저 카드 설명서</button>
+        </div>
+
+        <div class="comment-section" style="margin-top: 30px; border: 1px dashed rgba(162, 155, 254, 0.4);">
+            <h4 style="margin: 0 0 10px 0; color: var(--light-purple); font-size:0.95rem; font-weight:800;">✍️ 나의 학업 성찰 기록 히스토리</h4>
+            <div id="myCommentList" style="max-height: 110px; overflow-y: auto; font-size: 0.85rem; color: #ccc;">
+                작성한 소감이 이곳에 모입니다.
+            </div>
+        </div>
+        <button onclick="logout()" style="background: rgba(255,255,255,0.1); color:#ff7675; margin-top:30px; font-size:0.85rem; padding:8px 20px;">로그아웃</button>
+    </div>
+
+    <div id="pageDraw" class="page">
+        <h2>학업 카드 선택 🃏</h2>
+        <p class="desc">셔플된 격자판 배열에서 원하는 카드를 신중하게 한 장 골라보세요</p>
+        <div class="deck-grid" id="deckGrid"></div>
+        <button id="btnCheckResult" onclick="showResultPage()" style="display: none; background: linear-gradient(135deg, #e84393, #fd79a8); width:95%;">✨ 결과 확인하기</button>
+        <br><button onclick="goHome()" style="background:rgba(255,255,255,0.1); margin-top:10px;">메인으로</button>
+    </div>
+
+    <div id="pageResult" class="page">
+        <h2 id="resTitle" style="font-size:1.5rem;">카드 이름</h2>
+        <div class="card-display">
+            <img id="resImg" src="" alt="타로 결과 카드">
+        </div>
+        
+        <div class="fortune-details">
+            <p><strong>📝 요약 총평:</strong> <span id="resSummary" style="color:#fdcb6e; font-weight:bold;"></span></p>
+            <p><strong>⭐ 학업 운세 점수:</strong> <span id="resStars" class="stars"></span></p>
+            <p><strong>📖 심화 학업운 해설:</strong> <span id="resGeneral" style="display:block; margin-top:6px; text-align:justify; font-size:0.95rem; color:#dfdaf2;"></span></p>
+            <p><strong>🎯 집중도 지수:</strong> <span id="resFocus"></span></p>
+            <p><strong>📍 추천 공부 스팟:</strong> <span id="resPlace"></span></p>
+            <p><strong>📚 추천 과목 가이드:</strong> <span id="resSubject"></span></p>
+        </div>
+
+        <button onclick="shareLink()" style="background:#0984e3;">🔗 결과 공유</button>
+        <button onclick="saveCurrentCard()" style="background:#2ed573;">💾 보관함 저장</button>
+        <button onclick="reDrawCard()" style="background:#e84393;">🔄 다시 뽑기</button>
+        <button onclick="goHome()" style="background:rgba(255,255,255,0.1);">🏠 홈으로</button>
+
+        <div class="comment-section">
+            <h4 style="margin-top:0; color:var(--light-purple);">💬 동기들의 학업 피드백 리뷰</h4>
+            <div class="comment-list" id="commentList"></div>
+            <input type="text" id="newComment" placeholder="나의 오늘 다짐 한마디 ✍" style="width:58%; padding:10px; font-size:0.88rem; margin:0;">
+            <button onclick="addComment()" style="padding:10px 14px; font-size:0.88rem; margin:0 0 0 5px; vertical-align:middle;">등록</button>
+        </div>
+    </div>
+
+    <div id="pageStorage" class="page">
+        <h2>📂 나의 타로 이미지 보관함</h2>
+        <p class="desc">내가 소장하기로 선택한 학생 전용 타로 도감첩</p>
+        <div class="card-list" id="storageList"></div>
+        <br><button onclick="goHome()" style="background:rgba(255,255,255,0.1); margin-top:15px;">뒤로 가기</button>
+    </div>
+
+    <div id="pageGuide" class="page">
+        <h2>📖 타로 메이저 카드 설명서</h2>
+        <p class="desc">카드를 터치하면 해당 단원의 실시간 정밀 학습 점사 화면으로 연결됩니다</p>
+        <div class="card-list" id="guideList"></div>
+        <br><button onclick="goHome()" style="background:rgba(255,255,255,0.1); margin-top:15px;">뒤로 가기</button>
+    </div>
+
+    <script>
+        // 🚨 [에러 수정] 상단 변수 누락 및 구문 전면 정밀 보강 완료
+        let isSignUpMode = false; 
+        let currentUser = null; 
+        let selectedCardIndex = null;
+        
+        let accountDB = JSON.parse(localStorage.getItem('tarot_accounts')) || {}; 
+        let userStorages = JSON.parse(localStorage.getItem('userStorages')) || {};
+        let commentsData = JSON.parse(localStorage.getItem('commentsData')) || {};
+
+        const dbTarot = {
+            0: { name: "0. 바보 (Fool)", img: "https://cdn.phototourl.com/free/2026-06-18-ac2e5156-97a0-4dc5-9158-caa98b3370d2.png", summary: "벼랑 끝 스마트폰 등굣길, 정신 체리자! 🚨", score: 2, general: "등굣길에 공부 생각은 전혀 없이 오직 스마트폰 숏폼 화면에 눈이 팔려 귀여운 강아지가 바지를 붙잡아도 모른 채 낙제 절벽으로 걸어가는 철없는 모습입니다. 오늘 당신은 새로운 마음으로 의욕만 앞설 뿐, 구체적인 계획과 실천력이 매우 결여되어 있습니다. 스마트폰 스크롤을 당장 멈추고 기본 단원의 교과서 첫 장부터 한 걸음씩 겸손하게 밟아 나가지 않으면 큰 시험에서 대가를 치를 수 있으니 유의하세요.", focus: "📉 20% (주변 카톡이나 알림 소리에 즉각 반응함)", place: "🌿 개방되어 경각심을 주는 카페 오픈 테라스", subject: "🎨 창체활동 및 자유주제 탐구" },
+            1: { name: "1. 마법사 (Magician)", img: "https://cdn.phototourl.com/free/2026-06-18-a92e4e4f-793d-4402-9d0d-d6205ee29c70.png", summary: "태블릿과 노트북을 지배하는 올라운더 전교 1등 💻", score: 5, general: "내 책상 앞에 완벽한 인프라(노트북, 태블릿, 플래너, 필기도구)를 세팅하고 전지전능하게 두뇌를 굴려 학습 효율을 뽑아내는 최고의 지혜 상태입니다. 지적 호기심과 자신감이 최고조에 달해 있어 평소에 포기했던 어려운 수학 증명이나 까다로운 기술 코딩 과제도 시작만 하면 마법처럼 풀어낼 수 있습니다. 자만하지 말고 플래너에 써 둔 고난도 킬러 문항들을 오늘 다 부숴버리세요.", focus: "🚀 100% (암기 속도와 응용력이 평소의 3배 이상)", place: "🖥️ 듀얼 모니터나 참고자료 활용이 편한 대형 스터디룸", subject: "📐 정보 코딩, AI 인공지능 탐구, 수학 기하와 벡터" },
+            2: { name: "2. 고위 여사제 (High Priestess)", img: "https://cdn.phototourl.com/free/2026-06-18-fa21124e-679e-4a48-8c31-9111e25fc6cf.png", summary: "적막을 찢는 치밀한 칸막이 독서실의 여왕 🤫", score: 4, general: "달 모양 스탠드가 비추는 좁은 1인실 칸막이 안에서, 두꺼운 개념서를 정독하는 세상을 차단한 채 깊이 가라앉는 운세입니다. 감정에 치우치지 않고 지극히 냉철한 통찰력이 작동하므로, 오늘만큼은 진도를 무작정 빼는 것보다 과거에 틀렸던 수학이나 영어 오답들을 아주 현미경으로 보듯 정밀 분석하기에 최적입니다. 조용히 내공을 채우는 비밀 병기의 날입니다.", focus: "👁️ 90% (외부 자극에 눈 하나 깜짝하지 않는 고요한 상태)", place: "🤫 완벽 전면 금지된 적막한 관리형 독서실 1인실", subject: "📖 국어 비문학 구조 독해, 언어와 매체, 윤리와 사상 심화" },
+            3: { name: "3. 여황제 (Empress)", img: "https://cdn.phototourl.com/member/2026-06-16-eb27498c-b669-4049-bdd1-fd599d42d8e4.png", summary: "편안한 빈백 소파 위, 스트레스 제로의 풍요로움 🛋️", score: 4, general: "안락한 빈백 소파에 파묻혀 태블릿 화면으로 이쁜 일러스트나 미술 도감 과제를 힐링하듯 살피는 풍요로운 운세입니다. 강박적인 억지 암기방식은 오늘 전혀 먹히지 않습니다. 마음에 평온함이 머물 때 아이디어가 피어나는 흐름이니 시각적 인강이나 스토리 중심의 세계사 만화 등을 소설 읽듯 감상해 보세요. 학업 스트레스를 녹이기에 최상의 하루입니다.", focus: "☕ 60% (창의성과 시각적인 자료 수용력은 최상급)", place: "🛋️ 안락한 쿠션과 은은한 잔잔 음악이 깔린 감성 스터디카페", subject: "🎨 미술 이론 및 실기, 영어 회화 스피킹 대본 작성, 디자인 과제" },
+            4: { name: "4. 황제 (Emperor)", img: "https://cdn.phototourl.com/member/2026-06-16-d35875c9-2643-4096-8bae-e1cfc1c43a76.png", summary: "초시계 누르는 전교 회장의 칼 같은 스케줄 통제 ⏱️", score: 5, general: "각 잡힌 단정한 교복을 입고 근엄하게 의자에 앉아 초시계로 순공 시간을 1초 단위로 측정하며 자신을 지배하는 무서운 날입니다. 흐트러짐 없는 군대식 자제력이 발휘되므로 오늘 계획한 문제집 50페이지 풀기 같은 무자비한 목표도 의지력 하나로 기필코 달성해냅니다. 타협 없는 철의 자습 시간을 완성할 유일무이한 타이밍입니다.", focus: "⚔️ 95% (감정에 휘둘리지 않고 정해진 물리적 계획량 완수)", place: "🏫 선생님 바로 앞자리 학교 야간 자습실", subject: "➗ 수학 공통과목 미적분 기출 풀이, 물리학 킬러 역학 문항" },
+            5: { name: "5. 교황 (Hierophant)", img: "https://cdn.phototourl.com/member/2026-06-16-be9edfd7-56a8-4c5d-89aa-cd7ef116b6b3.png", summary: "선생님의 특급 힌트와 족보가 열리는 날 👨‍🏫", score: 4, general: "교단 앞에서 정석적인 가르침을 전하시는 온화한 교장 선생님의 모습처럼 전통적이고 검증된 정공법에 승리 공식이 숨어있습니다. 꼼수나 야매 인강을 찾아 헤매지 말고 학교 선생님이 수업 시간에 강조했던 교과서 여백의 필기와 연계 교재 족보를 다시 정독하는 것이 성적 상승의 직통 지름길입니다. 질문할 것이 있다면 교무실로 즉시 찾아가세요.", focus: "📝 70% (지식을 정석대로 수용하고 흡수하는 모범생 상태)", place: "👨‍🏫 질문 피드백이 즉각 가능한 학교 교무실 앞 자습 테이블", subject: "📜 학교 정기고사 교과서 연계 변형 문제, EBS 수능 특강 정독" },
+            6: { name: "6. 연인 (Lovers)", img: "https://cdn.phototourl.com/free/2026-06-18-7b03720c-0c4e-4a5b-b2e7-b074f591c154.png", summary: "줄이어폰 하나로 연결된 든든한 학업 파트너 🎧", score: 4, general: "혼자 구석에서 외롭게 책을 붙잡고 끙끙대기보다는, 결이 맞는 친구와 줄이어폰을 사이좋게 한쪽씩 나누어 끼고 동일한 일타강사 인강을 들으며 시너지를 창출하는 달콤한 학습운입니다. 서로 모르는 개념을 말로 설명하고 하브루타식 백지 복습을 가볍게 수행해 줄 때 기억력이 영구 소장 수준으로 정착됩니다. 함께 윈윈하며 성장하는 즐거운 날입니다.", focus: "💬 65% (협동과 소통형 토론식 공부에서 진가 발휘)", place: "👥 대화형 스터디카페 오픈 테이블", subject: "💬 조별 프로젝트 프레젠테이션 리허설, 영어 듣기 모의평가" },
+            7: { name: "7. 전차 (Chariot)", img: "https://cdn.phototourl.com/free/2026-06-18-bbe9a802-4640-4240-a3b5-8093153cdad2.png", summary: "목표 대학을 네비에 찍고 돌진하는 폭주 오토바이 🛵", score: 4, general: "태블릿 내비게이션에 명확한 'GOAL(목표 대학교 마크)'을 선명하게 박아둔 채 스쿠터를 타고 고속 진도를 빼버리는 탱크 같은 저돌적인 운세입니다. 슬럼프니 잡념이니 따위의 고민은 사치입니다. 무서운 돌파력이 생기니 오늘만큼은 뒤돌아보지 말고 미친 속도로 문제집 한 권을 한 단원 통째로 끝까지 통독해 버리는 괴력을 보여주기에 적합합니다.", focus: "🔥 85% (엄청난 속도로 개념 진도를 밀어붙이는 돌파력)", place: "🏃‍♂️ 약간의 소음과 활력이 도는 지하철/버스 안, 창가 개방석", subject: "⏱️ 마감이 코앞인 긴급 수행평가 에세이 채우기, 탐구 1회독 완파" },
+            8: { name: "8. 힘 (Strength)", img: "https://cdn.phototourl.com/member/2026-06-16-4ce0f081-6ad3-442a-bea4-65311e1dcd4b.png", summary: "학업 번아웃이라는 사자를 부드럽게 조련하는 멘탈갑 🦁", score: 5, general: "운동장 한복판에서 나를 위협하고 으르렁거리는 거대한 야수(모의고사 성적 스트레스, 시험 중압감)의 대가리를 부드러운 인내심과 마인드 컨트롤로 길들여 무력화시키는 지혜로운 날입니다. 오늘 모의고사나 퀴즈 성적이 흔들리더라도 멘탈이 바스라지지 않고 차분하게 이성적으로 자가 치유를 완수해 냅니다. 진정한 상위권의 뚝심입니다.", focus: "🧘‍♂️ 80% (기복 없이 끈기 있게 4시간 연속 책상을 지키는 지구력)", place: "🏟️ 학교 운동장 스탠드 벤치, 평온한 내 방 책상", subject: "🧬 화학 분자식 증명, 생명과학 유전 가계도 분석 등 끈기 과목" },
+            9: { name: "9. 은둔자 (Hermit)", img: "https://cdn.phototourl.com/member/2026-06-16-a75a22f4-4ad2-4d91-8fdd-64b111c9efe9.png", summary: "새벽 스탠드 아래 홀로 타오르는 학문의 은둔 고수 🕯️", score: 4, general: "모두가 잠든 깊은 새벽, 스탠드 미세한 불빛에 의지해 지팡이를 짚듯 폰으로 깊은 고전 문학 인강을 시청하며 독야청청 탐구하는 진정한 학자의 고독입니다. 주변 학우들과 성적 비교를 하며 불안해할 필요가 일절 없습니다. 오늘 오늘 혼자 조용히 파고드는 깊은 개념 이해는 훗날 내 성적의 단단한 무기가 되어 상위권 굳히기를 도울 것입니다.", focus: "🕯️ 95% (자기 성찰과 깊은 논리 분석 영역에서 각성함)", place: "🏚️ 시계 초침 소리만 들리는 새벽의 방구석, 적막한 독서실 구석", subject: "📜 고전 문학 해석론, 동아시아사/세계사 연표 암기, 영어 킬러 빈칸" },
+            10: { name: "10. 운명의 수레바퀴 (Wheel of Fortune)", img: "https://cdn.phototourl.com/free/2026-06-18-c58c2597-5286-419e-954a-abc9246a9b83.png", summary: "벼락치기 대박 적중! 기적의 시험 범위 룰렛 🎡", score: 4, general: "스핑크스가 중앙에서 코딩하고 사자, 독수리 동물이 참고서를 읽는 기묘한 시험 범위 룰렛이 드디어 나에게 유리한 흐름으로 멈춰 서는 타이밍입니다. 오늘 무심코 펼친 단원이나 어젯밤 대충 훑어본 변형 문항 노트가 다음 날 모의고사에 고스란히 출제되는 놀라운 요행과 기운이 가득합니다. 흐름을 놓치지 말고 무작위로 문제를 마구 풀어보세요.", focus: "🎲 70% (예상치 못한 순간 직관력이 발휘되어 정답률 폭발)", place: "🔄 주기적으로 자리를 바꾸는 자유 스터디카페", subject: "🎲 기출문제를 바탕으로 한 전 범위 무작위 모의고사 1회 테스트" },
+            11: { name: "11. 정의 (Justice)", img: "https://cdn.phototourl.com/free/2026-06-16-b3390274-b859-4b5c-99fb-5ee47ba47a17.png", summary: "만년필의 불빛과 태블릿 사이, 소름 돋는 5:5 밸런스 ⚖️", score: 4, general: "한 손에는 차가운 빛을 발하는 디지털 만년필을 쥐고 다른 손에는 아날로그 참고서와 아이패드의 수평 저울을 소름 돋도록 유지하는 이성적인 상태입니다.  계획을 이과 50%, 문과 50%의 황금 저울 분배율로 철저히 계산해 낼 수 있어 공부 편식을 치유하기에 완벽한 명약의 운세입니다.", focus: "⚖️ 85% (감정적 슬럼프 제로, 철저하게 기계처럼 분석하는 뇌)", place: "🏛️ 공공도서관 학술 자료실, 대학 부속 개방 도서관", subject: "📊 생활과 윤리, 수학 기출 오답 분석" },
+            12: { name: "12. 매달린 사람 (Hanged Man)", img: "https://cdn.phototourl.com/free/2026-06-16-4dd469ee-296d-46c7-a67d-ecc8195bc078.png", summary: "스마트폰과 게임 패드를 던져버린 고통의 묵묵한 인내 ⏳", score: 3, general: "대입 시계탑 문앞에 거꾸로 다리가 묶인 채 스마트폰을 과감히 바닥으로 추락시키며 오직 공부 강박을 견뎌내는 수도승의 모습입니다. 진도가 안 나가고 제자리걸음을 걷는 것 같아 엄청 답답하겠지만, 이것은 실력이 한 단계 도약하기 직전 물이 끓는 임계점의 구간입니다. 유혹을 던지고 오늘 버텨내면 성적은 폭발합니다.", focus: "⏳ 75% (몸은 힘들고 더디지만 머릿속 기초 뼈대는 견고해짐)", place: "🔒 스마트폰을 입구에서 원천 압수하는 초강력 스파르타 자습실", subject: "📐 취약 과목 단원 개념 백지 복습, 취약 구문 분석 매달리기" },
+            13: { name: "13. 죽음 (Death)", img: "https://cdn.phototourl.com/free/2026-06-16-3c66a9fe-c253-4322-9f15-b77b864dbdc1.png", summary: "낙제점 노트를 불태우고 대학교 정문으로 환골탈태 🍃", score: 3, general: "빨간 F학점이 낙인찍힌 옛날 오답노트와 나쁜 자습 버릇들을 전부 불태워버리고 새싹을 피우며 저 멀리 밝게 빛나는 대학교(University) 정문으로 진격하는 대전환의 선언입니다. 오늘부로 쓰레기 같던 공부 루틴과 스마트폰 의존증을 완전히 장례 치르고 리셋하면 완전히 새 사람으로 각성합니다.", focus: "🌱 60% (과거를 청산하고 아예 새로운 마음으로 뇌를 비운 상태)", place: "🚪 완전한 자극을 위해 평소 가본 적 없는 먼 동네의 자습실", subject: "🌱 1단원 1페이지 기초 베이스부터 새 책으로 완벽 복습 개시" },
+            14: { name: "14. 절제 (Temperance)", img: "https://cdn.phototourl.com/free/2026-06-16-ab8c7e2e-db65-441a-905a-67a7204e6835.png", summary: "두 컵의 액체를 황금 비율로 조율하는 평온함 🧪", score: 4, general: "이과적 지식과 문과적 감성을 정교하게 조율하듯 학업 계획과 휴식의 비율을 완벽하게 통제해내는 하루입니다. 휴식 시간과 집중하는 시간의 비율이 완벽한 시소처럼 제어되므로 공부를 오래 해도 지치지 않는 평온함이 종일 유지됩니다.", focus: "🧪 80% (중도와 평정심을 유지하여 뇌 피로도가 매우 적음)", place: "🏞️ 자연 조경이 살짝 보이는 창가 오픈석", subject: "🧪 통합 과학, 통합 사회, 기출 연계 논술 문제풀이" },
+            15: { name: "15. 악마 (Devil)", img: "https://cdn.phototourl.com/free/2026-06-16-438379e0-a775-44a8-9279-5b3903b9a7b4.png", summary: "소셜미디어 도파민 사슬에 목이 감긴 눈 풀린 중독 경고 😈", score: 1, general: "거대한 뿔 달린 악마의 그림자 아래서 목에 사슬이 감긴 채 스마트폰 릴스 화면에 영혼을 저당 잡혀 눈이 풀린 최악의 위험 경고 카드입니다. 오늘 공부는 집중이 단 5분도 유지되지 않고 계속 폰을 켜게 되는 도파민 중독 상태를 뜻합니다.", focus: "❌ 5% (주의력 결핍 및 도파민 과부하 상태 우려)", place: "🔒 전자기기 강제 수거형 관리 독서실", subject: "📝 오직 수공예 종이 교과서 소리 내어 정독" },
+            16: { name: "16. 탑 (Tower)", img: "https://cdn.phototourl.com/free/2026-06-16-a61e2fa8-10de-46b9-a088-2b19f554d029.png", summary: "벼락 맞은 책탑과 쏟아지는 시험지 속 멘탈 붕괴 ⚡", score: 1, general: "기초 개념 없이 벼락치기로 대충 쌓아 올린 부실한 참고서 빌딩 위로 날카로운 번개가 쳐 가차 없이 무너지며 학생들이 추락하는 멘탈 붕괴의 충격입니다. 애초에 모래 위에 쌓은 탑이었으니 찌꺼기를 다 허물고 바닥부터 진지하게 다시 시작해야 살길이 열립니다.", focus: "💥 0% (충격과 공포로 인해 일시적인 두뇌 정지 상태)", place: "🚨 위기의식을 최대치로 불어넣는 시험 직전 복도 자습대", subject: "🚒 진도를 다 버리고 당장 요약본 벼락치기 리딩" },
+            17: { name: "17. 별 (Star)", img: "https://cdn.phototourl.com/free/2026-06-16-4958fc82-49f7-4977-ae82-c3ff85d8cd66.png", summary: "머리 위 찬란한 합격의 왕관 별자리가 빛나는 밤 👑", score: 5, general: "차분하고 푸른 밤하늘 아래, 내 대가리 위로 찬란하게 쏟아지는 기하학적 왕관 별자리의 축복을 받으며 지혜의 우물물을 퍼 올리는 대길의 운세입니다. 오늘 품은 꿈은 단순한 망상이 아닌 실제 미래의 합격증이 될 확률이 아주 높으니 희망을 지니고 전진하세요.", focus: "⭐ 90% (미래 비전과 꿈이 주는 엄청난 긍정적 각성 효과)", place: "🌌 밤하늘 전망이 확보된 스터디카페 라운지", subject: "⭐ 나의 소질을 과시할 심화 탐구 소논문 보고서 작성" },
+            18: { name: "18. 달 (Moon)", img: "https://cdn.phototourl.com/free/2026-06-16-b9e05edd-d50a-4d34-b4fc-9f33c8c874c7.png", summary: "안개 속 개와 늑대의 울부짖음, 불안감 극복하기 🐺", score: 2, general: "책장 타워 사이 안개가 짙어 시험 불안감이 엄습하는 날입니다. 성적이 안 오르면 어쩌지 같은 실체 없는 막연한 고민에 멘탈을 낭비하지 말고 묵묵히 내 참고서의 활자 한 글자만 노려보며 뚜벅걸음을 걸어가세요.", focus: "🌫️ 35% (불안감과 잡념 때문에 책을 펴도 활자가 튕겨 나감)", place: "🧱 시야를 완벽히 가려주는 칸막이 독서실", subject: "✍ 헷갈리는 영어 영작 문법 정밀 다듬기" },
+            19: { name: "19. 태양 (Sun)", img: "https://cdn.phototourl.com/free/2026-06-16-65006e9a-bbcb-4564-a02b-a708285ab625.png", summary: "미소 짓는 태양 아래 백마를 타고 승리의 질주 ☀️", score: 5, general: "나를 축복해주는 거대한 태양 아래 적색 합격 깃발을 휘날리는 최고의 대길 카드입니다. 뇌세포가 200% 완전 활성화되어 지치지 않는 강력한 기쁨과 지적 에너지가 솟구치니 고난도 문항도 웃으며 격파할 수 있습니다.", focus: "☀️ 100% (지치지 않는 학업적 활력과 초고속 연산 처리 능력)", place: "☀️ 채광이 화사하게 쏟아지는 학교 대형 도서관", subject: "🗣️ 학급 발표 수업, 구술 면접 테스트" },
+            20: { name: "20. 심판 (Judgement)", img: "https://cdn.phototourl.com/member/2026-06-16-71a260ac-65fe-4f26-aaf0-22a163c7d084.png", summary: "천사의 나팔 소리와 감격의 최종 합격 통지서 🎺", score: 5, general: "대천사가 하늘에서 황금 나팔을 불어 은혜를 내리고 최종 대학 합격 통지서를 가슴에 안고 나오는 기적의 보상 운세입니다. 그동안 쌓아 올린 지식과 오답 성찰들이 드디어 운명의 빛을 발해 등급을 폭점시켜 줍니다.", focus: "💯 100% (통찰력과 시험 실전 감각의 완벽한 신의 융합 상태)", place: "🎓 실제 대입 고사장과 똑같이 맞춘 실전 모의석", subject: "💯 모의고사 기출 완벽 복습 및 파이널 정리" },
+            21: { name: "21. 세계 (World)", img: "https://cdn.phototourl.com/member/2026-06-16-9cdfac22-251e-4add-814c-0b3a574288f1.png", summary: "학업 여정 대완성! 완벽한 마침표와 비상 🌍", score: 5, general: "장엄한 월계관 한가운데서 보라색 졸업 스트리머를 두르고 자유롭게 비상하는 학업의 대완성 최종장입니다. 내 우주 속에 전 범위의 지식 체계가 머릿속 파일처럼 정리되어 있으니 자신감 있게 최종 마무리를 완수하세요.", focus: "🌍 100% (마스터의 경지, 최고의 뇌 상태)", place: "🛋️ 내 방에서 가장 익숙한 나만의 책상실", subject: "🌍 전 과목 최종 단권화 요약 노트 리딩" }
+        };
+
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            if(pageId === 'pageMain') { renderMyComments(); }
+        }
+
+        function toggleAuthMode() {
+            isSignUpMode = !isSignUpMode;
+            document.getElementById('authTitle').innerText = isSignUpMode ? "📝 회원가입" : "🔮 타로메이트 (TarotMate)";
+            document.getElementById('authDesc').innerText = isSignUpMode ? "이름과 비밀번호 숫자 4자리를 등록하세요" : "회원 정보를 입력하고 오늘 나의 학업운을 확인하세요";
+            document.getElementById('btnAuth').innerText = isSignUpMode ? "📝 가입 완료하기" : "✨ 오늘의 타로 보기";
+            document.getElementById('authToggleBtn').innerText = isSignUpMode ? "이미 계정이 있으신가요? 로그인하기" : "아직 계정이 없으신가요? 회원가입하기";
+        }
+
+        function handleAuth() {
+            const name = document.getElementById('username').value.trim();
+            const pw = document.getElementById('userpw').value.trim();
+
+            if(!name) { alert("👨‍🎓 이름을 입력해 주세요!"); return; }
+            if(pw.length !== 4 || isNaN(pw)) { alert("🔑 패스워드는 숫자 '4자리'여야 합니다!"); return; }
+
+            if(isSignUpMode) {
+                if(accountDB[name]) { alert("이미 가입 완료된 학생입니다."); return; }
+                accountDB[name] = pw; userStorages[name] = [];
+                localStorage.setItem('tarot_accounts', JSON.stringify(accountDB));
+                localStorage.setItem('userStorages', JSON.stringify(userStorages));
+                alert("🎉 회원가입 성공! 이제 로그인해 주세요.");
+                toggleAuthMode();
+            } else {
+                if(!accountDB[name] || accountDB[name] !== pw) { alert("❌ 인증에 실패했습니다. 비밀번호를 확인하세요!"); return; }
+                currentUser = name;
+                if(!userStorages[currentUser]) userStorages[currentUser] = [];
+                document.getElementById('welcomeMsg').innerText = `🔮 학업 메이트 [ ${currentUser} ] 학생 채널`;
+                showPage('pageMain');
+            }
+        }
+
+        function logout() { currentUser = null; showPage('pageLogin'); }
+
+        function goDrawPage() {
+            selectedCardIndex = null;
+            document.getElementById('btnCheckResult').style.display = 'none';
+            const grid = document.getElementById('deckGrid'); grid.innerHTML = "";
+            showPage('pageDraw');
+
+            for(let i=0; i<22; i++) {
+                let card = document.createElement('div'); card.className = "shuffle-card";
+                card.onclick = function() { selectCard(this, i); };
+                grid.appendChild(card);
+            }
+        }
+
+        function selectCard(element, index) {
+            document.querySelectorAll('.shuffle-card').forEach(c => c.classList.remove('selected'));
+            element.classList.add('selected');
+            // 🚨 무작위 값을 실시간 추출하되 결과를 인덱스에 매핑
+            selectedCardIndex = Math.floor(Math.random() * 22);
+            document.getElementById('btnCheckResult').style.display = 'inline-block';
+        }
+
+        function showResultPage() {
+            if(selectedCardIndex === null) return;
+            const data = dbTarot[selectedCardIndex];
+            
+            document.getElementById('resTitle').innerText = data.name;
+            document.getElementById('resImg').src = data.img;
+            document.getElementById('resSummary').innerText = data.summary;
+            document.getElementById('resGeneral').innerText = data.general;
+            document.getElementById('resFocus').innerText = data.focus;
+            document.getElementById('resPlace').innerText = data.place;
+            document.getElementById('resSubject').innerText = data.subject;
+
+            let starStr = "";
+            for(let s=0; s<5; s++) { starStr += s < data.score ? "★" : "☆"; }
+            document.getElementById('resStars').innerText = starStr;
+
+            renderComments(selectedCardIndex); showPage('pageResult');
+        }
+
+        function saveCurrentCard() {
+            if(!userStorages[currentUser].includes(selectedCardIndex)) {
+                userStorages[currentUser].push(selectedCardIndex);
+                localStorage.setItem('userStorages', JSON.stringify(userStorages));
+                alert("💾 저장 완료! 보관소에 안전 보관되었습니다.");
+            } else { alert("이미 컬렉션에 보관된 카드입니다."); }
+        }
+
+        function reDrawCard() { goDrawPage(); }
+        function goHome() { showPage('pageMain'); }
+
+        function shareLink() {
+            const link = `${window.location.origin}${window.location.pathname}?shareCard=${selectedCardIndex}`;
+            navigator.clipboard.writeText(link).then(() => { alert("🔗 공유 고유 링크가 복사되었습니다!"); });
+        }
+
+        function openStorage() {
+            const listZone = document.getElementById('storageList'); listZone.innerHTML = "";
+            showPage('pageStorage');
+            const savedIds = userStorages[currentUser] || [];
+            if(savedIds.length === 0) { listZone.innerHTML = "<p style='grid-column:span 2;'>보관된 일러스트가 없습니다 📭</p>"; return; }
+            savedIds.forEach(idx => {
+                let box = document.createElement('div'); box.className = "mini-card";
+                box.onclick = function() { selectedCardIndex = idx; showResultPage(); };
+                box.innerHTML = `<img class="mini-card-img" src="${dbTarot[idx].img}"><div class="mini-card-name">${dbTarot[idx].name.split(' ')[1]}</div>`;
+                listZone.appendChild(box);
+            });
+        }
+
+        function openGuide() {
+            const guideZone = document.getElementById('guideList'); guideZone.innerHTML = "";
+            showPage('pageGuide');
+            for(let i=0; i<22; i++) {
+                let box = document.createElement('div'); box.className = "mini-card";
+                box.onclick = (function(idx) { return function() { selectedCardIndex = idx; showResultPage(); }; })(i);
+                box.innerHTML = `<img class="mini-card-img" src="${dbTarot[i].img}"><div class="mini-card-name">${dbTarot[i].name.split(' ')[1]}</div>`;
+                guideZone.appendChild(box);
+            }
+        }
+
+        function renderComments(cardId) {
+            const list = document.getElementById('commentList'); list.innerHTML = "";
+            const arr = commentsData[cardId] || ["✏️ 선배 동기들의 소감이 아직 없네요. 첫 리뷰를 정식 등록해보세요!"];
+            arr.forEach(text => {
+                let div = document.createElement('div'); div.className = "comment-item"; div.innerText = text; list.appendChild(div);
+            });
+        }
+
+        function addComment() {
+            const input = document.getElementById('newComment'); const txt = input.value.trim();
+            if(!txt || selectedCardIndex === null) return;
+            if(!commentsData[selectedCardIndex]) commentsData[selectedCardIndex] = [];
+            commentsData[selectedCardIndex].push(`🎓 ${currentUser}: ${txt}`);
+            input.value = ""; localStorage.setItem('commentsData', JSON.stringify(commentsData));
+            renderComments(selectedCardIndex); renderMyComments();
+        }
+
+        function renderMyComments() {
+            const myZone = document.getElementById('myCommentList'); myZone.innerHTML = ""; let count = 0;
+            for (let cardId in commentsData) {
+                commentsData[cardId].forEach(comment => {
+                    if(comment.startsWith(`🎓 ${currentUser}:`)) {
+                        let shortComment = comment.replace(`🎓 ${currentUser}:`, "").trim();
+                        let p = document.createElement('div'); p.className = "comment-item"; p.style.color = "#a29bfe";
+                        p.innerHTML = `🃏 <b>${dbTarot[cardId].name.split(' ')[1]}</b>: "${shortComment}"`;
+                        myZone.appendChild(p); count++;
+                    }
+                });
+            }
+            if(count === 0) { myZone.innerHTML = "<p style='color:#666; margin:0;'>아직 작성한 한마디 리뷰가 없습니다. 소감을 남겨보세요!</p>"; }
+        }
+    </script>
+</body>
+</html>
